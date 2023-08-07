@@ -1,34 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScatterChart, Scatter, CartesianGrid, XAxis, YAxis, Tooltip, Label } from 'recharts';
 import './App.css';
 
 function App() {
-    const hardcodedData = [
-        { x: 500, y: 1000, bedrooms: 1, floorplanName: "Plan A" },
-        { x: 600, y: 1500, bedrooms: 1, floorplanName: "Plan B" },
-        { x: 700, y: 1800, bedrooms: 2, floorplanName: "Plan C" },
-        { x: 650, y: 1300, bedrooms: 2, floorplanName: "Plan D" },
-        { x: 800, y: 2200, bedrooms: 3, floorplanName: "Plan E" },
-    ];
 
-    const bedroomCounts = Array.from(new Set(hardcodedData.map(data => data.bedrooms)));
+    const [apartments, setApartments] = useState([]);
+
+    useEffect(() => {
+        fetch("http://127.0.0.1:5000/api/apartments")
+            .then(res => res.json())
+            .then(data => {
+                const formattedData = data.map(apartment => ({
+                    x: (parseInt(apartment.size_range.split(' → ')[0]) + parseInt(apartment.size_range.split(' → ')[1])) / 2,
+                    y: apartment.price ? parseFloat(apartment.price.replace('$', '').replace(',', '')) : 0,
+                    bedrooms: apartment.bedrooms,
+                    floorplanName: apartment.floorplan_name,
+                    availableUnits: apartment.available_units,
+                    sizeRange: apartment.size_range
+                }));
+                
+                setApartments(formattedData);
+            })
+            
+            .catch(err => console.error("Error fetching apartment data:", err));
+    }, []);
+
+    const bedroomCounts = Array.from(new Set(apartments.map(data => data.bedrooms)));
 
     const CustomTooltip = ({ active, payload }) => {
         if (active && payload && payload.length) {
             return (
                 <div className="custom-tooltip">
-                    <p className="label">{`Floorplan: ${payload[0].payload.floorplanName}`}</p>
-                    <p className="desc">{`Price: $${payload[0].value}`}</p>
+                    <p className="label">{`Floorplan Name: ${payload[0].payload.floorplanName}`}</p>
+                    <p className="desc">{`Price: $${payload[0].payload.y}`}</p> {/* Note the change from value to y */}
+                    <p className="sqft">{`Sqft: ${payload[0].payload.sizeRange}`}</p>
+                    <p className="units">{`Available Units: ${payload[0].payload.availableUnits}`}</p>
                 </div>
             );
         }
         return null;
     };
+    
 
     return (
         <div className="App">
             {bedroomCounts.map(bedroom => {
-                const filteredData = hardcodedData.filter(data => data.bedrooms === bedroom);
+                const filteredData = apartments.filter(data => data.bedrooms === bedroom);
 
                 return (
                     <div key={bedroom} style={{ marginBottom: 20 }}>
