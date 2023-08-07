@@ -3,9 +3,11 @@ from scrape import scrape_and_insert
 from apscheduler.schedulers.background import BackgroundScheduler
 import psycopg2
 from dotenv import load_dotenv
+from flask_cors import CORS
 import os
 
 app = Flask(__name__)
+CORS(app)
 
 load_dotenv()
 POSTGRES_PASS = os.getenv('POSTGRES_PASS')
@@ -31,7 +33,7 @@ def scheduled_scrape():
     scrape_and_insert()
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=scheduled_scrape, trigger="interval", days=1)
+scheduler.add_job(func=scheduled_scrape, trigger="interval", days = 1)
 scheduler.start()
 
 if __name__ == '__main__':
