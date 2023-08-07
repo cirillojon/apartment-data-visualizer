@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 URLS = [
     ("AMLI SLU", "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-south-lake-union/floorplans"),
     ("AMLI Mark24", "https://www.amli.com/apartments/seattle/ballard-apartments/amli-mark24/floorplans"),
-    ("AMLI 535", " https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-535/floorplans)")
+    ("AMLI 535", "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-535/floorplans")
 ]
 
 # Load environment variables

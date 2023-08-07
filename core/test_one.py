@@ -8,7 +8,7 @@ def extract_data(element, class_name):
     except (AttributeError, IndexError):
         return None
 
-URL = "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-535/floorplans"
+URL = "https://www.amli.com/apartments/seattle/downtown-seattle-apartments/amli-arc/floorplans"
 response = requests.get(URL)
 soup = BeautifulSoup(response.content, 'html.parser')
 
