@@ -36,3 +36,23 @@
     transform: rotate(360deg);
   }
 }
+
+.legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.legend-item {
+  margin: 0 10px;
+  display: flex;
+  align-items: center;
+}
+
+.color-box {
+  width: 20px;
+  height: 20px;
+  margin-right: 5px;
+}
+

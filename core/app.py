@@ -21,7 +21,11 @@ def get_apartments():
     try:
         with psycopg2.connect(dbname="apartments_db", user="postgres", password=POSTGRES_PASS, host="localhost", port="5432") as connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT * FROM apartments;")
+                cursor.execute("""
+                    SELECT a.id, a.floorplan_name, a.available_units, a.bedrooms, a.bathrooms, a.size_range, a.availability_date, a.price, c.complex_name 
+                    FROM apartments a
+                    LEFT JOIN complexes c ON a.complex_id = c.complex_id;
+                """)
                 rows = cursor.fetchall()
                 columns = [desc[0] for desc in cursor.description]
                 result = [dict(zip(columns, row)) for row in rows]
