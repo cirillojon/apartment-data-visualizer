@@ -5,7 +5,11 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 # Constants
-URL = "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-south-lake-union/floorplans"
+URLS = [
+    ("AMLI SLU", "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-south-lake-union/floorplans"),
+    ("AMLI Mark24", "https://www.amli.com/apartments/seattle/ballard-apartments/amli-mark24/floorplans"),
+    ("AMLI 535", " https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-535/floorplans)")
+]
 
 # Load environment variables
 load_dotenv()
@@ -40,6 +44,14 @@ def extract_price(s):
         if numbers:
             return float(numbers)
     return None
+
+def record_exists(cursor, table_name, floorplan_name, complex_id):
+    query = f"""SELECT COUNT(*) FROM {table_name}
+                WHERE floorplan_name = ? AND complex_id = ?"""
+    cursor.execute(query, (floorplan_name, complex_id))
+    count = cursor.fetchone()[0]
+    return count > 0
+
 
 def scrape_data(url):
     response = requests.get(url)
@@ -91,17 +103,42 @@ def insert_data_to_db(data_list, complex_name):
 
                 # Check if table exists and create if not
                 cursor.execute("""
-                CREATE TABLE IF NOT EXISTS apartments (
-                    id SERIAL PRIMARY KEY,
-                    floorplan_name VARCHAR(255),
-                    available_units INT,
-                    bedrooms INT,
-                    bathrooms INT,
-                    size_range VARCHAR(255),
-                    availability_date DATE,
-                    price MONEY,
-                    complex_id INT REFERENCES complexes(complex_id)
-                );
+                    CREATE TABLE IF NOT EXISTS apartments (
+                        id SERIAL PRIMARY KEY,
+                        floorplan_name VARCHAR(255) NOT NULL,
+                        available_units INT,
+                        bedrooms INT,
+                        bathrooms INT,
+                        size_range VARCHAR(255),
+                        availability_date DATE,
+                        price MONEY,
+                        complex_id INT REFERENCES complexes(complex_id),
+                        UNIQUE (floorplan_name, complex_id)
+                    );
+                """)
+
+                # Remove duplicates from the table
+                cursor.execute("""
+                    DELETE FROM apartments a1
+                    USING apartments a2
+                    WHERE 
+                        a1.floorplan_name = a2.floorplan_name AND
+                        a1.complex_id = a2.complex_id AND
+                        a1.id < a2.id;
+                """)
+
+                # Add the unique constraint if table already exists and the constraint does not
+                cursor.execute("""
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.table_constraints 
+                            WHERE constraint_name = 'unique_floorplan_complex'
+                        ) THEN
+                            ALTER TABLE apartments ADD CONSTRAINT unique_floorplan_complex UNIQUE (floorplan_name, complex_id);
+                        END IF;
+                    END
+                    $$;
                 """)
 
                 for data in data_list:
@@ -109,23 +146,27 @@ def insert_data_to_db(data_list, complex_name):
                     if validate_floorplan_data(data):
                         cursor.execute("""
                             INSERT INTO apartments (floorplan_name, available_units, bedrooms, bathrooms, size_range, availability_date, price, complex_id)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            ON CONFLICT (floorplan_name, complex_id) 
+                            DO UPDATE SET price = EXCLUDED.price, available_units = EXCLUDED.available_units;
                         """, (data['floorplan_name'], data['available_units'], data['bedrooms'], data['bathrooms'], data['size_range'], data['availability_date'], data['price'], complex_id))
 
-        print("Data inserted successfully!")
+        print("Data inserted or updated successfully!")
 
     except psycopg2.Error as e:
         print(f"An error occurred: {e}")
 
+
+
 def scrape_and_insert():
-    scraped_data = scrape_data(URL)
-    for data in scraped_data:
-        for key, value in data.items():
-            print(f"{key}: {value}")
-        print("--------------------------")
-    
-    complex_name = 'AMLI SLU'
-    insert_data_to_db(scraped_data, complex_name)
+    for complex_name, url in URLS:
+        scraped_data = scrape_data(url)
+        for data in scraped_data:
+            for key, value in data.items():
+                print(f"{key}: {value}")
+            print("--------------------------")
+        insert_data_to_db(scraped_data, complex_name)
+
 
 # if __name__ == "__main__":
 #     scrape_and_insert()

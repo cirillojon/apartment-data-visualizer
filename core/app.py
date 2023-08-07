@@ -37,7 +37,7 @@ def scheduled_scrape():
     scrape_and_insert()
 
 scheduler = BackgroundScheduler()
-scheduler.add_job(func=scheduled_scrape, trigger="interval", days=1)
+scheduler.add_job(func=scheduled_scrape, trigger="interval", days = 1)
 scheduler.start()
 
 if __name__ == '__main__':

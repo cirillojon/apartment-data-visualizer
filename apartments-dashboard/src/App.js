@@ -44,11 +44,13 @@ function App() {
                     <p className="desc">{`Price: $${data.y || 'N/A'}`}</p>
                     <p className="sqft">{`Sqft: ${data.sizeRange || 'N/A'}`}</p>
                     <p className="units">{`Available Units: ${data.availableUnits || 'N/A'}`}</p>
+                    <p className="floorplan">{`Floor Plan Name: ${data.floorplanName || 'N/A'}`}</p> {/* Added this line */}
                 </div>
             );
         }
         return null;
     };
+    
 
     return (
         <div className="App">
