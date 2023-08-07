@@ -106,5 +106,9 @@ def main():
         
     insert_data_to_db(scraped_data)
 
-if __name__ == "__main__":
-    main()
+def scrape_and_insert():
+    scraped_data = scrape_data(URL)
+    insert_data_to_db(scraped_data)
+
+# if __name__ == "__main__":
+#     scrape_and_insert()
