@@ -96,15 +96,13 @@ def insert_data_to_db(data_list):
     except psycopg2.Error as e:
         print(f"An error occurred: {e}")
 
-def main():
+def scrape_and_insert():
     scraped_data = scrape_data(URL)
-    
     for data in scraped_data:
         for key, value in data.items():
             print(f"{key}: {value}")
         print("--------------------------")
-        
     insert_data_to_db(scraped_data)
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     scrape_and_insert()
