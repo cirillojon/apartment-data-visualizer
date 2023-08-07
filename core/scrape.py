@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
 # Constants
-URL = "https://www.amli.com/apartments/seattle/ballard-apartments/amli-mark24/floorplans"
+URL = "https://www.amli.com/apartments/seattle/south-lake-union-apartments/amli-south-lake-union/floorplans"
 
 # Load environment variables
 load_dotenv()
@@ -66,11 +66,29 @@ def scrape_data(url):
     
     return scraped_data
 
-def insert_data_to_db(data_list):
+def validate_floorplan_data(floorplan_data):
+    """Validates the floorplan data."""
+    essential_fields = ['floorplan_name', 'price']
+
+    for field in essential_fields:
+        if not floorplan_data[field]:
+            return False
+    return True
+
+def insert_data_to_db(data_list, complex_name):
     try:
         with psycopg2.connect(dbname="apartments_db", user="postgres", password=POSTGRES_PASS, host="localhost", port="5432") as connection:
             with connection.cursor() as cursor:
                 
+                # Check if the complex exists and insert if not
+                cursor.execute("SELECT complex_id FROM complexes WHERE complex_name = %s;", (complex_name,))
+                complex_id = cursor.fetchone()
+                if not complex_id:
+                    cursor.execute("INSERT INTO complexes (complex_name) VALUES (%s) RETURNING complex_id;", (complex_name,))
+                    complex_id = cursor.fetchone()[0]
+                else:
+                    complex_id = complex_id[0]
+
                 # Check if table exists and create if not
                 cursor.execute("""
                 CREATE TABLE IF NOT EXISTS apartments (
@@ -81,15 +99,18 @@ def insert_data_to_db(data_list):
                     bathrooms INT,
                     size_range VARCHAR(255),
                     availability_date DATE,
-                    price MONEY
+                    price MONEY,
+                    complex_id INT REFERENCES complexes(complex_id)
                 );
                 """)
 
                 for data in data_list:
-                    cursor.execute("""
-                        INSERT INTO apartments (floorplan_name, available_units, bedrooms, bathrooms, size_range, availability_date, price)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s);
-                    """, (data['floorplan_name'], data['available_units'], data['bedrooms'], data['bathrooms'], data['size_range'], data['availability_date'], data['price']))
+                    # Only insert validated data
+                    if validate_floorplan_data(data):
+                        cursor.execute("""
+                            INSERT INTO apartments (floorplan_name, available_units, bedrooms, bathrooms, size_range, availability_date, price, complex_id)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+                        """, (data['floorplan_name'], data['available_units'], data['bedrooms'], data['bathrooms'], data['size_range'], data['availability_date'], data['price'], complex_id))
 
         print("Data inserted successfully!")
 
@@ -102,7 +123,9 @@ def scrape_and_insert():
         for key, value in data.items():
             print(f"{key}: {value}")
         print("--------------------------")
-    insert_data_to_db(scraped_data)
+    
+    complex_name = 'AMLI SLU'
+    insert_data_to_db(scraped_data, complex_name)
 
 # if __name__ == "__main__":
 #     scrape_and_insert()
