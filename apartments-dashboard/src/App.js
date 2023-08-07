@@ -10,15 +10,20 @@ function App() {
         fetch("http://127.0.0.1:5000/api/apartments")
             .then(res => res.json())
             .then(data => {
-                const formattedData = data.map(apartment => ({
-                    x: apartment.size_range.includes('→') ? (parseInt(apartment.size_range.split(' → ')[0]) + parseInt(apartment.size_range.split(' → ')[1])) / 2 : parseInt(apartment.size_range),
-                    y: apartment.price ? parseFloat(apartment.price.replace('$', '').replace(',', '')) : 0,
-                    bedrooms: apartment.bedrooms,
-                    floorplanName: apartment.floorplan_name,
-                    availableUnits: apartment.available_units,
-                    sizeRange: apartment.size_range,
-                    complex_name: apartment.complex_name // Add the complex_name
-                }));
+                const formattedData = data
+                    .map(apartment => ({
+                        x: apartment.size_range.includes('→') ? 
+                            (parseInt(apartment.size_range.split(' → ')[0]) + parseInt(apartment.size_range.split(' → ')[1])) / 2 : 
+                            parseInt(apartment.size_range),
+                        y: apartment.price ? parseFloat(apartment.price.replace('$', '').replace(',', '')) : 0,
+                        bedrooms: apartment.bedrooms,
+                        floorplanName: apartment.floorplan_name,
+                        availableUnits: apartment.available_units,
+                        sizeRange: apartment.size_range,
+                        complex_name: apartment.complex_name // Add the complex_name
+                    }))
+                    .filter(apartment => apartment.bedrooms === 1); // Filter only 1-bedroom apartments
+                
                 setApartments(formattedData);
             })
             .catch(err => console.error("Error fetching apartment data:", err));
@@ -44,7 +49,6 @@ function App() {
         }
         return null;
     };
-    
 
     return (
         <div className="App">
@@ -56,20 +60,39 @@ function App() {
                     </span>
                 ))}
             </div>}
-            
-            <ScatterChart width={500} height={300}>
-                <CartesianGrid />
-                <XAxis type="number" dataKey="x" name="Square Footage">
-                    <Label value="Square Footage" position="bottom" />
-                </XAxis>
-                <YAxis type="number" dataKey="y" name="Price" unit="$">
-                    <Label value="Price" angle={-90} position="left" />
-                </YAxis>
-                <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
-                {complexNames.map(complexName => (
-                    <Scatter key={complexName} data={apartments.filter(ap => ap.complex_name === complexName)} fill={getComplexColor(complexName)} name={complexName} />
-                ))}
-            </ScatterChart>
+        
+            <div>
+                <h3>1 Bedroom</h3>
+                <ScatterChart width={500} height={300}>
+                    <CartesianGrid />
+                    <XAxis 
+                        type="number" 
+                        dataKey="x" 
+                        name="Square Footage" 
+                        domain={[Math.min(...apartments.map(ap => ap.x)), Math.max(...apartments.map(ap => ap.x))]}
+                    >
+                        <Label value="Square Footage" position="bottom" />
+                    </XAxis>
+                    <YAxis 
+                        type="number" 
+                        dataKey="y" 
+                        name="Price" 
+                        unit="$"
+                        domain={[Math.min(...apartments.map(ap => ap.y)), Math.max(...apartments.map(ap => ap.y))]}
+                    >
+                        <Label value="Price" angle={-90} position="left" />
+                    </YAxis>
+                    <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: '3 3' }} />
+                    {complexNames.map(complexName => (
+                        <Scatter 
+                            key={complexName} 
+                            data={apartments.filter(ap => ap.complex_name === complexName)} 
+                            fill={getComplexColor(complexName)} 
+                            name={complexName} 
+                        />
+                    ))}
+                </ScatterChart>
+            </div>
         </div>
     );
 }
