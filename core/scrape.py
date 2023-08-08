@@ -156,8 +156,6 @@ def insert_data_to_db(data_list, complex_name):
     except psycopg2.Error as e:
         print(f"An error occurred: {e}")
 
-
-
 def scrape_and_insert():
     for complex_name, url in URLS:
         scraped_data = scrape_data(url)
